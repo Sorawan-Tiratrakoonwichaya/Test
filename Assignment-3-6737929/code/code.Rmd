@@ -1,0 +1,274 @@
+---
+title: "code"
+author: "Sorawan Tiratrakoonwichaya"
+date: "2024-11-04"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#open raw data and clean data into R
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readr)
+raw_data <- read_delim("../raw_data/PlateletHW.tsv", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+View(raw_data)
+
+clean_data <- read_delim("../clean_data/clean_data.tsv", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+View(clean_data)
+
+```
+
+#check for outliers in data
+```{r}
+summary(raw_data$ADP)
+hist(raw_data$ADP, main = "Histogram from PlateletHW" , xlab = "ADP", col = "lightblue")
+```
+It has outliers because it has data lower than 0.
+Therefore, the data must be corrected.
+
+#create clean data
+```{r}
+clean_data$ADP <- abs(raw_data$ADP)
+par(mfcol=c(1,2))
+boxplot(raw_data$ADP, main = "Before")
+boxplot(clean_data$ADP, main = "After")
+```
+```{r}
+summary(clean_data$ADP)
+hist(clean_data$ADP, main = "Histogram from clean_data" , xlab = "ADP", col = "salmon")
+```
+
+
+
+#Install car package
+```{r}
+install.packages("car")
+```
+
+# Checking The Relationship Between ADP Levels and Resistance, rs4244285, rs4986893, and rs662 Genotype
+```{r}
+library(car)
+scatterplot(Resistance ~ ADP, data = clean_data, reg.line = lm, smooth = FALSE, main = "Relationship Between ADP Levels and Resistance")
+boxplot(clean_data$ADP ~ clean_data$rs4244285, main = "Boxplot of ADP Levels by rs4244285 Genotype", xlab = "rs4244285", ylab = "ADP", col = "turquoise")
+boxplot(clean_data$ADP ~ clean_data$rs4986893, main = "Boxplot of ADP Levels by rs4986893 Genotype", xlab = "rs4986893", ylab = "ADP", col = "slateblue")
+boxplot(clean_data$ADP ~ clean_data$rs662, main = "Boxplot of ADP Levels by rs662 Genotype", xlab = "rs662", ylab = "ADP", col = "khaki")
+```
+
+# Normalize ADP by taking log 
+```{r}
+clean_data$ADP_log <- log(clean_data$ADP)
+View(clean_data)
+```
+
+
+#Linear regression test
+##ADP and rs4244285
+```{r}
+library(ggplot2)
+linear_1 <- lm(ADP ~ rs4244285, data = clean_data)
+summary(linear_1)# significant (p-value < 0.05)
+
+ggplot(clean_data, aes(x = rs4244285, y = ADP)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "turquoise") +
+  labs(title = "Linear regression test between ADP Level and rs4244285",
+       x = "rs4244285 Genotype (0, 1, 2)",
+       y = "ADP") +
+  theme_minimal()
+
+plot(linear_1$fitted.values, linear_1$residuals,
+     main = "Residuals vs Fitted",
+     xlab = "Fitted Values",
+     ylab = "Residuals")
+abline(h = 0, col = "turquoise")
+
+qqnorm(linear_1$residuals, main = "QQ Plot: Relationship of ADP and rs4244285 (Unnormalized ADP)")
+qqline(linear_1$residuals, col = "turquoise")
+
+hist(linear_1$residuals, main = "Histogram of Residuals linear_1", xlab = "Residuals linear_1", col = "turquoise")
+
+```
+
+###If use the normalize ADP
+```{r}
+linear_log_1 <- lm(ADP_log ~ rs4244285, data = clean_data)
+summary(linear_log_1)# significant (p-value < 0.05)
+
+ggplot(clean_data, aes(x = rs4244285, y = ADP_log)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "turquoise") +
+  labs(title = "Linear regression test between log(ADP Level) and rs4244285",
+       x = "rs4244285 Genotype (0, 1, 2)",
+       y = "log(ADP)") +
+  theme_minimal()
+
+plot(linear_log_1$fitted.values, linear_log_1$residuals,
+     main = "Residuals vs Fitted",
+     xlab = "Fitted Values",
+     ylab = "Residuals")
+abline(h = 0, col = "turquoise")
+
+qqnorm(linear_log_1$residuals, main = "QQ Plot: Relationship of ADP and rs4244285 (Normalized ADP)")
+qqline(linear_log_1$residuals, col = "turquoise")
+
+hist(linear_log_1$residuals, main = "Histogram of Residuals linear_log_1", xlab = "Residuals linear_log_1", col = "turquoise")
+```
+
+##ADP and rs4986893
+```{r}
+linear_2 <- lm(ADP ~ rs4986893, data = clean_data)
+summary(linear_2)# significant (p-value < 0.05)
+
+ggplot(clean_data, aes(x = rs4986893, y = ADP)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "slateblue") +
+  labs(title = "Linear regression test between ADP Level and rs4986893",
+       x = "rs4986893 Genotype (0, 1, 2)",
+       y = "ADP") +
+  theme_minimal()
+
+plot(linear_2$fitted.values, linear_2$residuals,
+     main = "Residuals vs Fitted",
+     xlab = "Fitted Values",
+     ylab = "Residuals")
+abline(h = 0, col = "slateblue")
+
+qqnorm(linear_2$residuals, main = "QQ Plot: Relationship of ADP and rs4986893 (Unnormalized ADP)")
+qqline(linear_2$residuals, col = "slateblue")
+
+hist(linear_2$residuals, main = "Histogram of Residuals linear_2", xlab = "Residuals linear_2", col = "slateblue")
+
+```
+
+###If use the normalize ADP
+```{r}
+linear_log_2 <- lm(ADP_log ~ rs4986893, data = clean_data)
+summary(linear_log_2)# significant (p-value < 0.05)
+
+ggplot(clean_data, aes(x = rs4986893, y = ADP_log)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "slateblue") +
+  labs(title = "Linear regression test between log(ADP Level) and rs4986893",
+       x = "rs4986893 Genotype (0, 1, 2)",
+       y = "log(ADP)") +
+  theme_minimal()
+
+plot(linear_log_2$fitted.values, linear_log_2$residuals,
+     main = "Residuals vs Fitted",
+     xlab = "Fitted Values",
+     ylab = "Residuals")
+abline(h = 0, col = "slateblue")
+
+qqnorm(linear_log_2$residuals, main = "QQ Plot: Relationship of ADP and rs4986893 (Normalized ADP)")
+qqline(linear_log_2$residuals, col = "slateblue")
+
+hist(linear_log_2$residuals, main = "Histogram of Residuals linear_log_2", xlab = "Residuals linear_log_2", col = "slateblue")
+
+```
+
+##ADP and rs662
+```{r}
+linear_3 <- lm(ADP ~ rs662, data = clean_data)
+summary(linear_3)# not significant (p-value > 0.05)
+
+ggplot(clean_data, aes(x = rs662, y = ADP)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "khaki") +
+  labs(title = "Linear regression test between ADP Level and rs662",
+       x = "rs662 Genotype (0, 1, 2)",
+       y = "ADP") +
+  theme_minimal()
+
+plot(linear_3$fitted.values, linear_3$residuals,
+     main = "Residuals vs Fitted",
+     xlab = "Fitted Values",
+     ylab = "Residuals")
+abline(h = 0, col = "khaki")
+
+qqnorm(linear_3$residuals, main = "QQ Plot: Relationship of ADP and rs662 (Unnormalized ADP)")
+qqline(linear_3$residuals, col = "khaki")
+
+hist(linear_3$residuals, main = "Histogram of Residuals linear_3", xlab = "Residuals linear_3", col = "khaki")
+
+```
+
+###If use the normalize ADP
+```{r}
+linear_log_3 <- lm(ADP_log ~ rs662, data = clean_data)
+summary(linear_log_3)# not significant (p-value > 0.05)
+
+ggplot(clean_data, aes(x = rs662, y = ADP_log)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "khaki") +
+  labs(title = "Linear regression test between log(ADP Level) and rs662",
+       x = "rs662 Genotype (0, 1, 2)",
+       y = "log(ADP)") +
+  theme_minimal()
+
+plot(linear_log_3$fitted.values, linear_log_3$residuals,
+     main = "Residuals vs Fitted",
+     xlab = "Fitted Values",
+     ylab = "Residuals")
+abline(h = 0, col = "khaki")
+
+qqnorm(linear_log_3$residuals, main = "QQ Plot: Relationship of ADP and rs662 (Normalized ADP)")
+qqline(linear_log_3$residuals, col = "khaki")
+
+hist(linear_log_3$residuals, main = "Histogram of Residuals linear_log_3", xlab = "Residuals linear_log_3", col = "khaki")
+
+```
+
+# Check SEX and AGE association
+
+```{r}
+linear_sex <-lm(ADP_log ~ SEX, data= clean_data)
+linear_age <- lm(ADP_log ~ AGE, data= clean_data)
+
+
+summary(linear_sex)# not significant (p-value > 0.05)
+summary(linear_age) # not significant (p-value > 0.05)
+
+ggplot(clean_data, aes(x =SEX , y = ADP_log)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "orchid") + 
+  labs(title = "Association between log(ADP) and SEX",
+       x = "SEX 0 =male. 1 =SEX ",
+       y = "log(ADP)") +
+  theme_minimal()
+
+
+ggplot(clean_data, aes(x =AGE , y = ADP_log)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "gold") + 
+  labs(title = "Association between log(ADP) and AGE",
+       x = "AGE",
+       y = "log(ADP)") +
+  theme_minimal()
+```
+
+
+
+# Create complex linear regression
+
+```{r}
+snp_list <- c("rs4244285", "rs4986893", "rs662")
+
+results_list <- list()
+
+for (snp in snp_list) {
+  model_sum <- lm(as.formula(paste("ADP_log ~ AGE + SEX +", snp)), data = clean_data)
+  results_list[[snp]] <- summary(model_sum)
+}
+print(results_list[["rs4244285"]]) # significant (p-value < 0.05/3)
+print(results_list[["rs4986893"]])# significant (p-value < 0.05/3)
+print(results_list[["rs662"]]) # not siginifcant (p-value > 0.05/3)
+```
+
+
+

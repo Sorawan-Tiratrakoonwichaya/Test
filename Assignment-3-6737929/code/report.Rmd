@@ -1,0 +1,172 @@
+---
+title: "Assignment3"
+author: "Sorawan Tiratrakoonwichaya"
+date: "2024-11-04"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+  The study "Effects of Cytochrome P450 2C19 and Paraoxonase 1 Polymorphisms on Antiplatelet Response to Clopidogrel Therapy in Patients with Coronary Artery Disease" (Tresukosol, et al. PLoS One. 2014) collected data on IID, ADP-induced platelet aggregation level (ADP), Clopidogrel resistance (Resistant; 1 = resistance, 0 = not resistance), three SNPs including rs4244285 (CYP2C19\*2; 0 = GG, 1 = AG, 2 = AA), rs4986893 (CYP2C19\*3; 0 = AA, 1 = AG, 2 = GG), and rs662 (PON1. 192Q>R; 0 = AA, 1 = AG, 2 = GG), age, and sex (0 = male, 1 = female) of the participants and saved in the file "PlateletHW.tsv", where age and ADP are quantitative variables and the rest are qualitative variables.
+  
+  From this data, I want to test for an association between all three SNPs and ADP-induced platelet aggregation levels. I use linear regression to test the association. I also tested the relationships by adding age and sex because I think these two variables may be confounding factors. I started by checking for outliers in the data to deal with the abnormal data. I found some ADP data that was less than 0. I cleaned the data by absolute-valuing to be greater than 0 and saved the data in a new file named "clean_data.tsv" and ensured that there were no outliers in the data. 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readr)
+raw_data <- read_delim("../raw_data/PlateletHW.tsv", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+View(raw_data)
+
+clean_data <- read_delim("../clean_data/clean_data.tsv", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+View(clean_data)
+
+```
+
+# check for outliers in data
+```{r}
+summary(raw_data$ADP)
+hist(raw_data$ADP, main = "Histogram from PlateletHW" , xlab = "ADP", col = "lightblue")
+```
+
+# create clean data and compare the data before and after cleaned.
+```{r}
+clean_data$ADP <- abs(raw_data$ADP)
+par(mfcol=c(1,2))
+boxplot(raw_data$ADP, main = "Before")
+boxplot(clean_data$ADP, main = "After")
+```
+
+# check for outliers in clean data
+```{r}
+summary(clean_data$ADP)
+hist(clean_data$ADP, main = "Histogram from clean_data" , xlab = "ADP", col = "salmon")
+```
+
+  Then I did some preliminary correlation between ADP and resistance, rs4244285, rs4986893, and rs662 genotypes by making a scatter plot between ADP and Resistance and a boxplot between ADP and each SNP. From the graph of the relationship between ADP and Resistance, it can be seen that higher ADP levels correlate with increased drug resistance. From the graph of the relationship between ADP and rs4244285, it can be seen that people with genotype AA have higher ADP levels than genotypes AG and GG. From the graph of the relationship between ADP and rs4986893, it can be seen that people with genotype AG have higher ADP levels than genotype AA. And from the graph of the relationship between ADP and rs4986893, it can be seen that no matter what genotype people have, they will have similar ADP levels.
+
+# Checking The Relationship Between ADP Levels and Resistance, rs4244285, rs4986893, and rs662 Genotype
+```{r warning=FALSE}
+library(car)
+scatterplot(Resistance ~ ADP, data = clean_data, reg.line = lm, smooth = FALSE, 
+            main = "Relationship Between ADP Levels and Resistance")
+boxplot(clean_data$ADP ~ clean_data$rs4244285, main = "Boxplot of ADP Levels by rs4244285 Genotype", 
+        xlab = "rs4244285", ylab = "ADP", col = "turquoise")
+boxplot(clean_data$ADP ~ clean_data$rs4986893, main = "Boxplot of ADP Levels by rs4986893 Genotype", 
+        xlab = "rs4986893", ylab = "ADP", col = "slateblue")
+boxplot(clean_data$ADP ~ clean_data$rs662, main = "Boxplot of ADP Levels by rs662 Genotype", 
+        xlab = "rs662", ylab = "ADP", col = "khaki")
+```
+
+  Next step, I will do a Linear regression test between ADP and each SNP. I checked the Quantile-Quantile plot (QQ plot) of each relationship and found that I should Normalize ADP first to make the data distribution closer to a normal distribution, I chose to take the logarithm of the ADP data.
+
+# Linear regression test
+## Normalize ADP by taking log 
+```{r}
+clean_data$ADP_log <- log(clean_data$ADP)
+View(clean_data)
+```
+
+## QQ plot of relationship between ADP and rs4244285 before and after normalize ADP
+```{r fig.width=7}
+linear_1 <- lm(ADP ~ rs4244285, data = clean_data)
+summary(linear_1)
+qqnorm(linear_1$residuals, 
+       main = "QQ Plot: Relationship of ADP and rs4244285 (Unnormalized ADP)")
+qqline(linear_1$residuals, col = "turquoise")
+
+linear_log_1 <- lm(ADP_log ~ rs4244285, data = clean_data)
+summary(linear_log_1)
+qqnorm(linear_log_1$residuals, 
+       main = "QQ Plot: Relationship of ADP and rs4244285 (Normalized ADP)")
+qqline(linear_log_1$residuals, col = "turquoise")
+```
+
+## QQ plot of relationship between ADP and rs4986893 before and after normalize ADP
+```{r fig.width=7}
+linear_2 <- lm(ADP ~ rs4986893, data = clean_data)
+summary(linear_2)
+qqnorm(linear_2$residuals, 
+       main = "QQ Plot: Relationship of ADP and rs4986893 (Unnormalized ADP)")
+qqline(linear_2$residuals, col = "slateblue")
+
+linear_log_2 <- lm(ADP_log ~ rs4986893, data = clean_data)
+summary(linear_log_2)
+qqnorm(linear_log_2$residuals, 
+       main = "QQ Plot: Relationship of ADP and rs4986893 (Normalized ADP)")
+qqline(linear_log_2$residuals, col = "slateblue")
+```
+
+## QQ plot of relationship between ADP and rs662 before and after normalize ADP
+```{r fig.width=7}
+linear_3 <- lm(ADP ~ rs662, data = clean_data)
+summary(linear_3)
+qqnorm(linear_3$residuals, 
+       main = "QQ Plot: Relationship of ADP and rs662 (Unnormalized ADP)")
+qqline(linear_3$residuals, col = "khaki")
+
+linear_log_3 <- lm(ADP_log ~ rs662, data = clean_data)
+summary(linear_log_3)
+qqnorm(linear_log_3$residuals, 
+       main = "QQ Plot: Relationship of ADP and rs662 (Normalized ADP)")
+qqline(linear_log_3$residuals, col = "khaki")
+```
+
+  From checking the Quantile-quantile plot (QQ plot), I did a Linear regression test between log(ADP) and each SNP instead. From the graph, it can be seen that the relationship of ADP with each SNP tends in the same direction as the preliminary relationship before.
+
+## Linear regression test between log(ADP) and rs4244285
+```{r fig.width=6}
+library(ggplot2)
+ggplot(clean_data, aes(x = rs4244285, y = ADP_log)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "turquoise") +
+  labs(title = "Linear regression test between log(ADP Level) and rs4244285",
+       x = "rs4244285 Genotype (0, 1, 2)",
+       y = "log(ADP)") +
+  theme_minimal()
+```
+
+## Linear regression test between log(ADP) and rs4986893
+```{r fig.width=6}
+library(ggplot2)
+ggplot(clean_data, aes(x = rs4986893, y = ADP_log)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "slateblue") +
+  labs(title = "Linear regression test between log(ADP Level) and rs4986893",
+       x = "rs4986893 Genotype (0, 1, 2)",
+       y = "log(ADP)") +
+  theme_minimal()
+```
+
+
+## Linear regression test between log(ADP) and rs662
+```{r fig.width=6}
+library(ggplot2)
+ggplot(clean_data, aes(x = rs662, y = ADP_log)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "khaki") +
+  labs(title = "Linear regression test between log(ADP Level) and rs662",
+       x = "rs662 Genotype (0, 1, 2)",
+       y = "log(ADP)") +
+  theme_minimal()
+```
+
+  When I added the data of sex and age to each association, the Linear regression test of rs42244285 and rs4986893 were significantly associated with ADP-platelet aggregation (P value = 0.000203, 0.00701, P value < 0.05/3). On the other hand, the Linear regression test of rs662 are not statistically significant to ADP (P value = 0.608, P value > 0.05/3). In addition, the confounding variables (sex and age) were not significant. However, the R-square values were very low, and some graphs had negative R-squared values, indicating that the chosen model could not predict or explain the variability of the data. 
+
+# Linear regression test that added sex and age to each relationship
+```{r}
+snp_list <- c("rs4244285", "rs4986893", "rs662")
+
+results_list <- list()
+
+for (snp in snp_list) {
+  model_sum <- lm(as.formula(paste("ADP_log ~ AGE + SEX +", snp)), data = clean_data)
+  results_list[[snp]] <- summary(model_sum)
+}
+print(results_list[["rs4244285"]]) # significant (p-value < 0.05/3)
+print(results_list[["rs4986893"]])# significant (p-value < 0.05/3)
+print(results_list[["rs662"]]) # not significant (p-value > 0.05/3)
+```
+
+  From all the test results, it was concluded that the genotype of CYP2C19\*2 (rs42244285) and CYP2C19\*3 (rs4986893) significantly affected the ADP-induced platelet aggregation level, while the genotype of PON1. 192Q>R (rs662), sex, and age had no significant effect on the ADP-induced platelet aggregation level.
